@@ -14,7 +14,8 @@ output_pin = gpiozero.OutputDevice(17)
 lsize = (640, 480)
 picam2 = Picamera2()
 
-video_config = picam2.create_video_configuration(main={"size": (1456, 1088), "format": "RGB888"}, lores={"size": lsize, "format": "YUV420"})
+video_config = picam2.create_video_configuration(main={"size": (1456, 1088), "format": "RGB888"}, lores={"size": lsize, "format": "YUV420"},
+                                                 controls={"FrameDurationLimits": (15000, 15000)})
 picam2.configure(video_config)
 picam2.start_preview(Preview.QT)
 encoder = H264Encoder(1000000, repeat=True)
@@ -44,7 +45,9 @@ def motion_detection():
     min_contour_area = 1000
 
     while True:
-        frame = picam2.capture_array()
+        # CHANGE VIDEO STREAM HERE
+        # PROBLEM: have trouble detecting motion when using low res stream
+        frame = picam2.capture_array("main")
         contour = detect_motion(frame, back_sub, kernel, min_contour_area)
         
         if contour is not None:
