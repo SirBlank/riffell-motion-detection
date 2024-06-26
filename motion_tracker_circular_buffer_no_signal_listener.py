@@ -7,7 +7,6 @@ from picamera2.outputs import CircularOutput
 import gpiozero
 
 # TODO: extract the center xy coordinates of the contours and compile them to a csv. This will be used to reconstruct flight path.
-# TODO: get 60 fps (current: 30 fps)
 # TODO: 
 
 # GPIO setup
@@ -17,11 +16,11 @@ output_pin = gpiozero.OutputDevice(17)
 picam2 = Picamera2()
 
 video_config = picam2.create_video_configuration(main={"size": (1456, 1088), "format": "RGB888"}, lores={"size": (640, 480), "format": "YUV420"},
-                                                 controls={"FrameDurationLimits": (16666, 16666)})
+                                                 controls={"FrameDurationLimits": (16666, 16666), "ExposureTime": 100, "Saturation": 0})
 picam2.configure(video_config)
 picam2.start_preview(Preview.QT)
 encoder = H264Encoder(1000000, repeat=True, framerate=60)
-encoder.output = CircularOutput()
+encoder.output = CircularOutput(buffersize=300, pts="timestamps.pts")
 picam2.start()
 picam2.start_encoder(encoder)
 
@@ -71,7 +70,7 @@ def motion_detection():
                 epoch = int(time())
                 encoder.output.fileoutput = f"{epoch}.h264"
                 encoder.output.start()
-                sleep(10)
+                sleep(30)
                 encoder.output.stop()
                 print(f"Saved video as {epoch}.h264.")
 
