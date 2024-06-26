@@ -53,15 +53,23 @@ def motion_detection():
             y2 = y + int(h / 2)
 
             if prev_x is not None and x2 < prev_x:
-                print("Motion Detected! Sending signal...")
-                output_pin.on()
-                sleep(0.5)
-                output_pin.off()
+                # print("Motion Detected! Sending signal...")
+                # output_pin.on()
+                # sleep(0.5)
+                # output_pin.off()
+
+                print("Motion Detected! Saving video...")
+                epoch = int(time())
+                encoder.output.fileoutput = f"{epoch}.h264"
+                encoder.output.start()
+                sleep(10)
+                encoder.output.stop()
+                print(f"Saved video as {epoch}.h264.")
 
             prev_x = x2
 
 try:
-    print("Starting motion detection. Press 'q' to stop.")
+    print("Starting motion detection. Press Ctrl+C to stop.")
     sleep(5)
     motion_detection()
 
