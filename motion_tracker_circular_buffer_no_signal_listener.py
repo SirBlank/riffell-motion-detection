@@ -6,19 +6,21 @@ from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput
 import gpiozero
 
+# TODO: extract the center xy coordinates of the contours and compile them to a csv. This will be used to reconstruct flight path.
+# TODO: get 60 fps (current: 30 fps)
+# TODO: 
+
 # GPIO setup
 input_pin = gpiozero.InputDevice(22)
 output_pin = gpiozero.OutputDevice(17)
 
-# Define image size
-lsize = (640, 480)
 picam2 = Picamera2()
 
-video_config = picam2.create_video_configuration(main={"size": (1456, 1088), "format": "RGB888"}, lores={"size": lsize, "format": "YUV420"},
-                                                 controls={"FrameDurationLimits": (15000, 15000)})
+video_config = picam2.create_video_configuration(main={"size": (1456, 1088), "format": "RGB888"}, lores={"size": (640, 480), "format": "YUV420"},
+                                                 controls={"FrameDurationLimits": (16666, 16666)})
 picam2.configure(video_config)
 picam2.start_preview(Preview.QT)
-encoder = H264Encoder(1000000, repeat=True)
+encoder = H264Encoder(1000000, repeat=True, framerate=60)
 encoder.output = CircularOutput()
 picam2.start()
 picam2.start_encoder(encoder)
@@ -40,13 +42,17 @@ def detect_motion(frame, back_sub, kernel, min_contour_area):
 
 def motion_detection():
     prev_x = None
+    # INCREASE varThreshold = LESS SENSITIVE MOTION DETECTION
     back_sub = cv2.createBackgroundSubtractorMOG2(history=700, varThreshold=50, detectShadows=True)
+    # INCREASE KERNEL SIZE FOR MORE AGGRESSIVE NOISE REDUCTION
     kernel = np.ones((30, 30), np.uint8)
+    # DETERMINES THE CONTOUR SIZE TO BE CONSIDERED AS VALID MOTION
+    # ONLY CONTOURS WITH AN AREA OF 1000 PIXELS OR MORE WILL BE CONSIDERED AS VALID MOTION.
     min_contour_area = 1000
 
     while True:
         # CHANGE VIDEO STREAM HERE
-        # PROBLEM: have trouble detecting motion when using low res stream
+        # PROBLEM: have trouble detecting motion when using low res stream (lores)
         frame = picam2.capture_array("main")
         contour = detect_motion(frame, back_sub, kernel, min_contour_area)
         
