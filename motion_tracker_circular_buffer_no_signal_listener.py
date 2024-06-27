@@ -4,6 +4,7 @@ from time import sleep, time
 from picamera2 import Picamera2, Preview
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput
+from datetime import datetime
 import gpiozero
 
 # TODO: extract the center xy coordinates of the contours and compile them to a csv. This will be used to reconstruct flight path.
@@ -69,9 +70,11 @@ def motion_detection():
                 print("Motion Detected! Saving video...")
                 epoch = int(time())
                 encoder.output.fileoutput = f"{epoch}.h264"
+                print(f"Starting recording at: {datetime.now()}")
                 encoder.output.start()
                 sleep(30)
                 encoder.output.stop()
+                print(f"Ended recording at: f{datetime.now()}")
                 print(f"Saved video as {epoch}.h264.")
 
             prev_x = x2
