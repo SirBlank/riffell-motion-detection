@@ -8,26 +8,27 @@ import time
 # attempt to implement circular buffer
 
 def main():
-    # Initialize the camera
     picam2 = Picamera2()
-    config = picam2.create_video_configuration(main={"size": (640, 480)}, controls={'FrameRate': 60})
-    picam2.configure(config)
+    video_config = picam2.create_video_configuration(main={"size": (1456, 1088), "format": "RGB888"},
+                                                 lores={"size": (640, 480), "format": "YUV420"},
+                                                 controls={"FrameDurationLimits": (16666, 16666), "ExposureTime": 100, "Saturation": 0, "FrameRate": 60})
+    picam2.configure(video_config)
 
-    # Start the camera
     picam2.start()
-    time.sleep(2)  # Allow the camera to warm up
+    time.sleep(2)
 
     back_sub = cv2.createBackgroundSubtractorMOG2(history=700, varThreshold=25, detectShadows=True)
     kernel = np.ones((20, 20), np.uint8)
 
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
     out = cv2.VideoWriter('output.mp4', fourcc, 20, (640, 480))
+    min_contour_area = 10
 
     start_time = time.time()
 
     while True:
         # Capture frame-by-frame
-        frame = picam2.capture_array()
+        frame = picam2.capture_array("lores")
 
         # Use every frame to calculate the foreground mask and update the background
         fg_mask = back_sub.apply(frame)
@@ -60,6 +61,8 @@ def main():
         else:
             # Find the largest moving object in the image
             max_index = np.argmax(areas)
+            if areas[max_index] < min_contour_area:
+                continue
 
         # Draw the bounding box
         cnt = contours[max_index]
