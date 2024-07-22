@@ -1,7 +1,7 @@
-import pygame
-import sys
-import time
-import random
+import pygame # 2.6.0
+import sys # python version 
+import time # python version   
+import random # python version
 
 pygame.init()
 
@@ -28,13 +28,16 @@ final_gap = final_width / 3
 # Setup
 screen = pygame.display.set_mode((width, height))
 
+# Function to draw the bars
 def bar_drawing(screen, bars):
     screen.fill(white)
+
+    # For each bar, draw based on the color, position, current widhth and height 
     for bar in bars:
         pygame.draw.rect(screen, bar['color'], (*bar['pos'], bar['width'], bar['height']))
     pygame.display.flip()
 
-# Function for two bar animation 
+# Function for two bar horizontal animation 
 def two_bars_hor_animation():
     
     # Randomizing the colors of two bars
@@ -51,7 +54,8 @@ def two_bars_hor_animation():
 
     # Growing animation
     start_time = time.time()
-    while time.time() - start_time < 4.75:
+    while time.time() - start_time < 4.75: # Change this to increase motion time 
+
         # Setting the dimenstions
         total_time = time.time() - start_time
         current_height = int(initial_height + (final_height - initial_height) * (total_time / 5))
@@ -100,7 +104,7 @@ def two_bars_hor_animation():
     pygame.display.flip()
     time.sleep(2)
 
-# Function for three bar animation 
+# Function for three bar horizontal animation 
 def three_bars_hor_animation():
     
     # Randomizing the colors of three bars
@@ -170,6 +174,7 @@ def three_bars_hor_animation():
     pygame.display.flip()
     time.sleep(2)
 
+# Function for two bar vertical animation 
 def two_bar_ver_animation():
 
     # Randomizing the colors of two bars   
@@ -234,7 +239,7 @@ def two_bar_ver_animation():
     pygame.display.flip()
     time.sleep(2)
 
-# Function for three bar animation 
+# Function for three bar vertical animation 
 def three_bars_ver_animation():
     
     # Randomizing the colors of three bars
@@ -315,6 +320,8 @@ def main():
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_b:
+                    # Randomly choice based an animation
+                    # 1/4 chance for each animation
                     animation = random.choice([1, 2, 3, 4])
                     if animation == 1:
                         two_bars_hor_animation()
@@ -326,7 +333,7 @@ def main():
                         three_bars_ver_animation()
         screen.fill(white)
         pygame.display.flip()
-    
+   
 if __name__ == '__main__':
     try:
         main()
