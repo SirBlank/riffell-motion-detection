@@ -32,7 +32,7 @@ screen = pygame.display.set_mode((width, height))
 def bar_drawing(screen, bars):
     screen.fill(white)
 
-    # For each bar, draw based on the color, position, current widhth and height 
+    # For each bar, draw based on the color, position, current width and height 
     for bar in bars:
         pygame.draw.rect(screen, bar['color'], (*bar['pos'], bar['width'], bar['height']))
     pygame.display.flip()
@@ -56,7 +56,7 @@ def two_bars_hor_animation():
     start_time = time.time()
     while time.time() - start_time < 4.75: # Change this to increase motion time 
 
-        # Setting the dimenstions
+        # Setting the dimensions
         total_time = time.time() - start_time
         current_height = int(initial_height + (final_height - initial_height) * (total_time / 5))
         current_width = int(initial_width + (final_width - initial_width) * (total_time / 5))
@@ -320,7 +320,7 @@ def main():
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_b:
-                    # Randomly choice based an animation
+                    # Randomly chooses an animation
                     # 1/4 chance for each animation
                     animation = random.choice([1, 2, 3, 4])
                     if animation == 1:
