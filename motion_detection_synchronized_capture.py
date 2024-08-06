@@ -1,6 +1,7 @@
 import cv2
 import EasyPySpin
-from time import sleep, time
+import time
+from time import sleep
 import numpy as np
 from datetime import datetime
 from collections import deque
@@ -14,12 +15,6 @@ from collections import deque
 # numpy: 1.26.4
 
 
-## CURRENTLY HAVE PROBLEM WITH RESOLUTION AND FPS
-## NEED TO HANDLE CONTINUOUS MOTION DETECTION, ADD A BUFFER TIME BETWEEN EACH DETECTION?
-## ANOTHER OPTION: SAVE FRAMES AS UNCOMPRESSED IMAGES (BMP)
-## Consider having a third array to store buffer for the next video when recording current video.
-
-
 # BEFORE SYNCHRONIZATION:
 # 500x500 works with 200fps
 # 1440x1080 works with <=75fps
@@ -27,21 +22,23 @@ from collections import deque
 # AFTER SYNCHRONIZATION:
 # 1440X1080 with <= 40fps
 
-serial_number_0 = "24122966"  # primary camera (set your camera's serial number)
-serial_number_1 = "24122965"  # secondary camera (set your camera's serial number)
+serial_number_0 = "24122966"  # primary camera serial number
+serial_number_1 = "24122965"  # secondary camera serial number
 cap = EasyPySpin.SynchronizedVideoCapture(serial_number_0, serial_number_1)
-cap.set(cv2.CAP_PROP_FPS, 60)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_FPS, 100)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out_0 = None
 out_1 = None
-buffer_size = 600
-additional_frame_size = 600
+buffer_size = 1000
+additional_frame_size = 1000
 additional_frames_0 = deque(maxlen=additional_frame_size)
 additional_frames_1 = deque(maxlen=additional_frame_size)
 ring_buffer_0 = deque(maxlen=buffer_size)
 ring_buffer_1 = deque(maxlen=buffer_size)
+cap.set(cv2.CAP_PROP_EXPOSURE, 100)
+print(cap.get(cv2.CAP_PROP_EXPOSURE))
 
 def detect_motion(frame, back_sub, kernel, min_contour_area, i):
     fg_mask = back_sub.apply(frame)
@@ -85,7 +82,6 @@ def motion_detection():
             if not ret:
                 print("Error: Failed to capture image")
                 break
-
             if not recording:
                 if i == 0:
                     ring_buffer_0.append(frame)
@@ -93,7 +89,8 @@ def motion_detection():
                     ring_buffer_1.append(frame)
 
             frame_copy = np.copy(frame)
-            contour = detect_motion(frame_copy, back_sub, kernel, min_contour_area, i)
+            if not recording:
+                contour = detect_motion(frame_copy, back_sub, kernel, min_contour_area, i)
 
             if contour is not None:
                 x, y, w, h = cv2.boundingRect(contour)
@@ -112,13 +109,14 @@ def motion_detection():
                 if prev_x is not None and x2 < prev_x and not recording:
                     print("Motion Detected!")
                     print("Start: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
+                    start_time = time.time()
                     recording = True
                     frame_counter = 0
                     frame_height, frame_width = frame.shape[:2]
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
                     print(frame_width, frame_height)
-                    out_0 = cv2.VideoWriter(f'motion_detection_{timestamp}_0.avi', fourcc, 60.0, (frame_width, frame_height), isColor=False)
-                    out_1 = cv2.VideoWriter(f'motion_detection_{timestamp}_1.avi', fourcc, 60.0, (frame_width, frame_height), isColor=False)
+                    out_0 = cv2.VideoWriter(f'motion_detection_{timestamp}_0.avi', fourcc, 100.0, (frame_width, frame_height), isColor=False)
+                    out_1 = cv2.VideoWriter(f'motion_detection_{timestamp}_1.avi', fourcc, 100.0, (frame_width, frame_height), isColor=False)
                 prev_x = x2
 
             if recording:
@@ -131,6 +129,7 @@ def motion_detection():
                     recording = False
                     print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
                     print("Finished recording. Retrieving buffer and saving video...")
+                    print("Elapsed time:", time.time() - start_time)
                     for frame in ring_buffer_0:
                         out_0.write(frame)
                     for frame in additional_frames_0:
