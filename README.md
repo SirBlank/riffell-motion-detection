@@ -1,1 +1,0 @@
-# riffell-rpi-motion-detection
