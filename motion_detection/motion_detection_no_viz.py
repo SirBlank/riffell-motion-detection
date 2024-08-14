@@ -21,14 +21,16 @@ from collections import deque
 serial_number_0 = "24122966"  # primary camera serial number
 serial_number_1 = "24122965"  # secondary camera serial number
 cap = EasyPySpin.SynchronizedVideoCapture(serial_number_0, serial_number_1)
-cap.set(cv2.CAP_PROP_FPS, 140)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1200)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 800)
+cap.set(cv2.CAP_PROP_FPS, 200)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+cap.set(cv2.CAP_PROP_EXPOSURE, 4000)
+cap.set(cv2.CAP_PROP_GAIN, 10)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out_0 = None
 out_1 = None
-buffer_size = 1400
-additional_frame_size = 1400
+buffer_size = 180
+additional_frame_size = 1200
 additional_frames_0 = deque(maxlen=additional_frame_size)
 additional_frames_1 = deque(maxlen=additional_frame_size)
 ring_buffer_0 = deque(maxlen=buffer_size)
@@ -63,9 +65,11 @@ def motion_detection():
     prev_x = None
     recording = False
     frame_counter = 0
+    is_motion_detected_0 = False
+    is_motion_detected_1 = False
 
     # INCREASE varThreshold = LESS SENSITIVE MOTION DETECTION
-    back_sub = cv2.createBackgroundSubtractorMOG2(history=700, varThreshold=50, detectShadows=True)
+    back_sub = cv2.createBackgroundSubtractorMOG2(history=400, varThreshold=60, detectShadows=False)
     # INCREASE KERNEL SIZE FOR MORE AGGRESSIVE NOISE REDUCTION
     kernel = np.ones((30, 30), np.uint8)
     # DETERMINES THE CONTOUR SIZE TO BE CONSIDERED AS VALID MOTION
@@ -97,7 +101,12 @@ def motion_detection():
                 x2 = x + int(w / 2)
                 y2 = y + int(h / 2)
 
-                if prev_x is not None and x2 < prev_x and not recording:
+                if i == 0:
+                    is_motion_detected_0 = True
+                elif i == 1:
+                    is_motion_detected_1 = True
+
+                if is_motion_detected_0 and is_motion_detected_1 and prev_x is not None and x2 < prev_x and not recording:
                     print("Motion Detected!")
                     print("Start: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
                     start_time = time.time()
@@ -108,7 +117,15 @@ def motion_detection():
                     print(frame_width, frame_height)
                     out_0 = cv2.VideoWriter(f'motion_detection_{timestamp}_0.avi', fourcc, 140.0, (frame_width, frame_height), isColor=False)
                     out_1 = cv2.VideoWriter(f'motion_detection_{timestamp}_1.avi', fourcc, 140.0, (frame_width, frame_height), isColor=False)
+
+                    is_motion_detected_0 = False
+                    is_motion_detected_1 = False
                 prev_x = x2
+            else:
+                if i == 0:
+                    is_motion_detected_0 = False
+                elif i == 1:
+                    is_motion_detected_1 = False
 
             if recording:
                 if i == 0:
@@ -136,6 +153,7 @@ def motion_detection():
                     additional_frames_1.clear()
                     ring_buffer_0.clear()
                     ring_buffer_1.clear()
+                    back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
 
 if __name__ == '__main__':
     try:    
