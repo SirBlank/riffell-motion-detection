@@ -22,24 +22,30 @@ serial_number_1 = "24122965"  # secondary camera serial number
 cap = EasyPySpin.SynchronizedVideoCapture(serial_number_0, serial_number_1)
 
 # CAMERA FPS
-# When you change the fps, make sure to also change the fps in the VideoWriter as well.
-cap.set(cv2.CAP_PROP_FPS, 140)
+# When you change the camera fps, make sure to also change the fps in the VideoWriter as well.
+cap.set(cv2.CAP_PROP_FPS, 226)
 
 # CAMERA RESOLUTION WIDTH
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1200)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 
 # CAMERA RESOLUTION HEIGHT
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 800)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+# CAMERA EXPOSURE TIME (MICROSECONDS)
+cap.set(cv2.CAP_PROP_EXPOSURE, 4000)
+
+# CAMERA GAIN
+cap.set(cv2.CAP_PROP_GAIN, 10)
 
 # NOTE: you can find all camera properties you can change in Python in the "Supported VideoCapture Properties" section of this git repo: https://github.com/elerac/EasyPySpin. If there are properties you can't find on that page, you can configure those properties using the SpinView application.
 # You can confirm the changes that you made to the camera by printing out the camera properties like so, replace XXX with the property:
 # print(cap.get(cv2.CAP_PROP_XXX))
 
 # NUMBER OF FRAMES IN CIRCULAR BUFFER = FPS * DURATION_IN_SECONDS
-buffer_size = 1400
+buffer_size = 180
 
 # NUMBER OF FRAMES RECORDED AFTER MOTION DETECTION = FPS * DURATION_IN_SECONDS
-additional_frame_size = 1400
+additional_frame_size = 1356
 
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 additional_frames_0 = deque(maxlen=additional_frame_size)
@@ -75,11 +81,13 @@ def motion_detection():
     prev_x = None
     recording = False
     frame_counter = 0
+    is_motion_detected_0 = False
+    is_motion_detected_1 = False
 
     # THE HISTORY PARAMETER SPECIFIES THE NUMBER OF PREVIOUS FRAMES THAT THE ALGORITHM CONSIDERS WHEN UPDATING THE BACKGROUND MODEL.
     # INCREASE history = SLOWER ADAPTATION TO CHANGES, LESS SENSITIVE TO SUDDEN OR SHORT-TERM CHANGES IN THE FRAME.
     # INCREASE varThreshold = LESS SENSITIVE MOTION DETECTION
-    back_sub = cv2.createBackgroundSubtractorMOG2(history=700, varThreshold=50, detectShadows=False)
+    back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
     # INCREASE KERNEL SIZE FOR MORE AGGRESSIVE NOISE REDUCTION
     kernel = np.ones((30, 30), np.uint8)
     # DETERMINES THE CONTOUR SIZE TO BE CONSIDERED AS VALID MOTION
@@ -112,11 +120,17 @@ def motion_detection():
                 text = f"x: {x2}, y: {y2}"
                 cv2.putText(frame_copy, text, (x2 - 10, y2 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
+                if i == 0:
+                    is_motion_detected_0 = True
+                elif i == 1:
+                    is_motion_detected_1 = True
+
                 cv2.imshow(f"frame-{i}", frame_copy)
                 if cv2.waitKey(1) == ord('q'):
                     break
 
-                if prev_x is not None and x2 < prev_x and not recording:
+                # STARTING VIDEO RECORDING
+                if is_motion_detected_0 and is_motion_detected_1 and prev_x is not None and x2 < prev_x and not recording:
                     print("Motion Detected!")
                     log_time = datetime.now().strftime("%Y-%-m-%d_%H:%M:%S.%f")[:-3]
                     print("Start: ", log_time)
@@ -129,7 +143,16 @@ def motion_detection():
                     frame_height, frame_width = frame.shape[:2]
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
                     print(frame_width, frame_height)
+
+                    is_motion_detected_0 = False
+                    is_motion_detected_1 = False
+
                 prev_x = x2
+            else:
+                if i == 0:
+                    is_motion_detected_0 = False
+                elif i == 1:
+                    is_motion_detected_1 = False
 
             if recording:
                 if i == 0:
@@ -140,10 +163,11 @@ def motion_detection():
                 if frame_counter >= additional_frame_size:
                     recording = False
                     print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
-                    print("Finished recording. Retrieving buffer and saving video...")
+                    print("Finished recording. Retrieving buffer and saving images...")
                     print("Elapsed time:", time.time() - start_time)
                     folder_name_0 = f'images_{log_time}_0'
                     folder_name_1 = f'images_{log_time}_1'
+                    # SPECIFY SAVED FOLDER LOCATION HERE
                     os.makedirs(folder_name_0, exist_ok=True)
                     os.makedirs(folder_name_1, exist_ok=True)
                     combined_frames_0 = np.concatenate((ring_buffer_0, additional_frames_0))
@@ -159,6 +183,8 @@ def motion_detection():
                     ring_buffer_1.clear()
                     del combined_frames_0
                     del combined_frames_1
+                    back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
+                    print("Resuming motion detection...")
 
 if __name__ == '__main__':
     try:    
