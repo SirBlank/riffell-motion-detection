@@ -1,8 +1,6 @@
 import Visual_Stimulus_One_Bar
 import pygame # 2.6.0
 import sys # python version 
-import time # python version   
-import random # python version
 
 pygame.init()
 
@@ -13,11 +11,11 @@ duration = 6
 
 # Speed: How fast the animation moves in one direction
 # Select between slow (0), normal(1), fast(2)
-speed = 1   
+speed = 0   
 
 # Direction: Where the animation moves to. 
 # Choose between left or right 
-direction = 'right' 
+direction = 'left' 
 
 # Background: What the background of the animation is 
 # Choose between white background (True) or white & gray background (False)  
