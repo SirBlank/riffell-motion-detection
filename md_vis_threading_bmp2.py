@@ -7,6 +7,7 @@ import numpy as np
 from datetime import datetime
 from collections import deque
 import Visual_Stimulus_One_Bar
+import IR_LED 
 import pygame # 2.6.0
 import threading
 import board # 8.47
@@ -27,7 +28,9 @@ cap = EasyPySpin.SynchronizedVideoCapture(serial_number_0, serial_number_1)
 
 # CAMERA FPS
 # When you change the camera fps, make sure to also change the fps in the VideoWriter as well.
-cap.set(cv2.CAP_PROP_FPS, 226)
+frame_rate = 226
+
+cap.set(cv2.CAP_PROP_FPS, frame_rate)
 
 # CAMERA RESOLUTION WIDTH
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
@@ -48,21 +51,23 @@ cap.set(cv2.CAP_PROP_GAIN, 0)
 # NUMBER OF FRAMES IN CIRCULAR BUFFER = FPS * DURATION_IN_SECONDS
 buffer_size = 180
 
-# NUMBER OF FRAMES RECORDED AFTER MOTION DETECTION = FPS * DURATION_IN_SECONDS
-additional_frame_size = 700
-
+# The amount of the system will wait before starting the visual stimulus 
+wait_time = 1
 
 # Duration: How long the animation should last
 # Initial: 6 seconds  
-duration = 10
+duration = 3
+
+# NUMBER OF FRAMES RECORDED AFTER MOTION DETECTION = FPS * DURATION_IN_SECONDS
+additional_frame_size = (duration * frame_rate) + ( wait_time * frame_rate)
 
 # Speed: How fast the animation moves in one direction
 # Select between slow (0), normal(1), fast(2)
-speed = 1   
+speed = 2 
 
 # Direction: Where the animation moves to. 
 # Choose between left or right 
-direction = 'left' 
+direction = 'right' 
 
 # Background: What the background of the animation is 
 # Choose between white background (True) or white & gray background (False)  
@@ -116,7 +121,7 @@ def init_vis_stim():
         
         # Check if we need to start stimulus animation
         if stimulus_event.is_set():
-            Visual_Stimulus_One_Bar.animation(duration, speed, direction, height, width, color_selected, background_white, screen, pins)
+            Visual_Stimulus_One_Bar.animation(duration, speed, direction, height, width, color_selected, background_white, screen, pins, wait_time)
             stimulus_event.clear() 
 
         Visual_Stimulus_One_Bar.draw_background(background_white, screen, height, width)
@@ -150,11 +155,10 @@ def detect_motion(frame, back_sub, kernel, min_contour_area, i):
 def motion_detection():
     try:
         running_flag.set() 
-        sleep(5)
-        print("Starting motion detection. Press Ctrl+C to stop.")
-
         stim_thread= threading.Thread(target=init_vis_stim)
         stim_thread.start()
+        IR_LED.init(pins)
+        print("Starting motion detection. Press Ctrl+C to stop.")
 
         prev_x = None
         recording = False
@@ -240,7 +244,7 @@ def motion_detection():
                     elif i == 1:
                         additional_frames_1.append(frame)
                     frame_counter += .5 
-                    if frame_counter >= additional_frame_size:
+                    if frame_counter - 1 >= additional_frame_size:
                         recording = False
                         stimulus_event.clear()
                         print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
@@ -251,10 +255,23 @@ def motion_detection():
                         # SPECIFY SAVED FOLDER LOCATION HERE
                         os.makedirs(folder_name_0, exist_ok=True)
                         os.makedirs(folder_name_1, exist_ok=True)
-                        combined_frames_0 = np.concatenate((ring_buffer_0, additional_frames_0))
+                                             
+                        ring_buffer_0_np = np.array(ring_buffer_0)
+                        ring_buffer_1_np = np.array(ring_buffer_1)
+
+                        # Handle empty ring_buffers by checking their shape before concatenation
+                        if ring_buffer_0_np.size == 0:
+                            combined_frames_0 = additional_frames_0
+                        else:
+                            combined_frames_0 = np.concatenate((ring_buffer_0, additional_frames_0))
+
+                        if ring_buffer_1_np.size == 0:
+                            combined_frames_1 = additional_frames_1
+                        else:
+                            combined_frames_1 = np.concatenate((ring_buffer_1, additional_frames_1))
+
                         for idx, frame in enumerate(combined_frames_0):
                             cv2.imwrite(os.path.join(folder_name_0, f'frame_{idx}_0.bmp'), frame)
-                        combined_frames_1 = np.concatenate((ring_buffer_1, additional_frames_1))
                         for idx, frame in enumerate(combined_frames_1):
                             cv2.imwrite(os.path.join(folder_name_1, f'frame_{idx}_1.bmp'), frame)
                         print("Images Saved!")
@@ -265,6 +282,8 @@ def motion_detection():
                         del combined_frames_0
                         del combined_frames_1
                         back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
+                        
+                        time.sleep(5)
                         print("Resuming motion detection...")
     except KeyboardInterrupt:
         print("Stopping motion detection.")

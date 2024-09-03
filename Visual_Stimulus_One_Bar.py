@@ -1,6 +1,6 @@
 import pygame # 2.6.0
 import time # python version   
-# import IR_LED 
+import IR_LED 
 
 white = (255, 255, 255)
 gray = (133, 132, 131)
@@ -29,9 +29,9 @@ def draw_background(background_white, screen, height, width):
 
 # Function for three bar horizontal animation 
 # Parameters: duration, color, dimensions, speed, direction, background
-def animation(duration, speed , direction, height, width, color_selected, background_white, screen):
+def animation(duration, speed , direction, height, width, color_selected, background_white, screen, pins, wait_time):
     
-    # IR_LED.init(pins)
+    IR_LED.init(pins)
 
     final_height = width * 1.125
     final_width = final_height / 5
@@ -40,10 +40,10 @@ def animation(duration, speed , direction, height, width, color_selected, backgr
 
     # Updating the screen with the white background 
     print("Drawing background")
-    counter = 0
     draw_background(background_white, screen, height, width)
     pygame.display.flip()
-    time.sleep(2)
+
+    # time.sleep(wait_time)
 
     # Moving left 
     if(direction == 'left'):
@@ -54,48 +54,51 @@ def animation(duration, speed , direction, height, width, color_selected, backgr
         bar_drawing(screen, bar, background_white, height, width)
         pygame.time.delay(10)
 
+        print(( (width + final_width + final_width / 2 ) / duration ) / 95 * 3)
         # Moving off Screen animation 
         start_time = time.time()
         while time.time() - start_time < duration:
             # Updating the position of the bars
             if speed == 0:
-                # bar['pos'][0] -= int( (( width / 2 + final_width) / (duration * 50 )) + ( 2 / duration ))
-                bar['pos'][0] -= int( (( width + final_width) / (duration * 200) )* 1 )
-                # IR_LED.LED_on(pins[4]) 
+                bar['pos'][0] -= ( (width + final_width + final_width / 2 ) / duration ) / 91.25
+                IR_LED.LED_on(pins[0]) 
                 bar_drawing(screen, bar, background_white, height, width)
                 pygame.time.delay(10)
             
             elif speed == 1:
+                IR_LED.LED_on(pins[3])
                 if (time.time() - start_time < duration/2):
-                    bar['pos'][0] -= int( ((( width / 2 + final_width)/300) - .45) * 2 )
-                    #IR_LED.LED_on(pins[4])                    
-                    #IR_LED.LED_off(pins[7])
+                    bar['pos'][0] -= ( (width + final_width + final_width / 2 ) / duration ) / 93 * 2
+                    IR_LED.LED_off(pins[1])
+                    IR_LED.LED_on(pins[0])
                 else:
-                    bar['pos'][0] += int( ((( width / 2 + final_width)/300) - .45) * 2 )
-                    #IR_LED.LED_on(pins[7])
-                    #IR_LED.LED_off(pins[4])
+                    bar['pos'][0] += ( (width + final_width + final_width / 2 ) / duration ) / 93 * 2
+                    IR_LED.LED_off(pins[0])
+                    IR_LED.LED_on(pins[1])
                 bar_drawing(screen, bar, background_white, height, width)
                 pygame.time.delay(10)
             
             elif speed == 2:
-                #IR_LED.LED_on(pins[4])
+                IR_LED.LED_on(pins[3])
+                IR_LED.LED_on(pins[4])
                 if (time.time() - start_time < duration/3):
-                    bar['pos'][0] -= int( ((( width / 2 + final_width)/300) - .45) * 2 )
-                    #IR_LED.LED_on(pins[4])                    
-                    #IR_LED.LED_off(pins[7])
+                    bar['pos'][0] -= ( (width + final_width + final_width / 2 ) / duration ) / 95 * 3
+                    IR_LED.LED_off(pins[1])
+                    IR_LED.LED_on(pins[0])
                 elif (time.time() - start_time < 2*duration/3):
-                    bar['pos'][0] += int( ((( width / 2 + final_width)/300) - .45) * 2 )
-                    #IR_LED.LED_on(pins[7])
-                    #IR_LED.LED_off(pins[4])
+                    bar['pos'][0] += ( (width + final_width + final_width / 2 ) / duration ) / 95 * 3
+                    IR_LED.LED_off(pins[0])
+                    IR_LED.LED_on(pins[1])
                 else:
-                    bar['pos'][0] -= int( ((( width / 2 + final_width)/300) - .45) * 2 )
+                    bar['pos'][0] -= ( (width + final_width + final_width / 2 ) / duration ) / 91.25 * 3
+                    IR_LED.LED_off(pins[1])
+                    IR_LED.LED_on(pins[0])
 
                 bar_drawing(screen, bar, background_white, height, width)
                 pygame.time.delay(10)
         
-        #IR_LED.init(pins)           
+        IR_LED.init(pins)           
         print("Finished duration")
-        print(counter)
         print(bar["pos"][0], bar["pos"][1])
     
     # Moving Right 
@@ -110,45 +113,48 @@ def animation(duration, speed , direction, height, width, color_selected, backgr
         while time.time() - start_time < duration:
             # Updating the position of the bars
             if speed == 0:
-                bar['pos'][0] += int( (( width / 2 + final_width)/300) - .52)
+                bar['pos'][0] += ( (width + final_width + final_width / 2 ) / duration ) / 91.25
                 bar_drawing(screen, bar, background_white, height, width)
-                #IR_LED.LED_on(pins[7]) 
+                IR_LED.LED_on(pins[1]) 
                 pygame.time.delay(10)
             
             elif speed == 1:
+                IR_LED.LED_on(pins[3])
                 if (time.time() - start_time < duration/2):
-                    bar['pos'][0] += int( ((( width / 2 + final_width)/300) - .52) * 2 )
-                    #IR_LED.LED_on(pins[7])
-                    #IR_LED.LED_off(pins[4])
+                    bar['pos'][0] += ( (width + final_width + final_width / 2 ) / duration ) / 93 * 2
+                    IR_LED.LED_off(pins[0])
+                    IR_LED.LED_on(pins[1])
 
                 else:
-                    bar['pos'][0] -= int( ((( width / 2 + final_width)/300) - .52) * 2 )
-                    #IR_LED.LED_on(pins[4])                    
-                    #IR_LED.LED_off(pins[7])
+                    bar['pos'][0] -= ( (width + final_width + final_width / 2 ) / duration ) / 93 * 2
+                    IR_LED.LED_off(pins[1])
+                    IR_LED.LED_on(pins[0])
 
                 bar_drawing(screen, bar, background_white, height, width)
                 pygame.time.delay(10)
             
             elif speed == 2:
-                # IR_LED.LED_on(pins[4])
+                IR_LED.LED_on(pins[3])
+                IR_LED.LED_on(pins[4])
                 if (time.time() - start_time < duration/3):
-                    bar['pos'][0] += int( ((( width / 2 + final_width)/300) - .52) * 2 )
-                    #IR_LED.LED_on(pins[7])
-                    #IR_LED.LED_off(pins[4])
-
+                    bar['pos'][0] += ( (width + final_width + final_width / 2 ) / duration ) / 93 * 3
+                    IR_LED.LED_off(pins[0])
+                    IR_LED.LED_on(pins[1])
                 elif (time.time() - start_time < 2*duration/3):
-                    bar['pos'][0] -= int( ((( width / 2 + final_width)/300) - .52) * 2 )
-                    #IR_LED.LED_on(pins[4])                    
-                    #IR_LED.LED_off(pins[7])
-                else: 
-                    bar['pos'][0] += int( ((( width / 2 + final_width)/300) - .52) * 2 )
+                    bar['pos'][0] -= ( (width + final_width + final_width / 2 ) / duration ) / 93 * 3
+                    IR_LED.LED_off(pins[0])
+                    IR_LED.LED_on(pins[1])
+                else:
+                    bar['pos'][0] += ( (width + final_width + final_width / 2 ) / duration ) / 91.25 * 3
+                    IR_LED.LED_off(pins[0])
+                    IR_LED.LED_on(pins[1])
 
                 bar_drawing(screen, bar, background_white, height, width)
                 pygame.time.delay(10)
 
+        IR_LED.init(pins)
         print("Finished duration")
-        #IR_LED.init(pins)
-        print(bar["pos"][0], bar["pos"][1])
+        
     
     # Updating the screen with the white background 
     draw_background(background_white, screen, height, width)

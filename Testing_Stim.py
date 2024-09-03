@@ -1,4 +1,4 @@
-import Visual_Stimulus_One_Bar
+import Vis_Stimulus
 import pygame # 2.6.0
 import sys # python version 
 
@@ -11,11 +11,11 @@ duration = 6
 
 # Speed: How fast the animation moves in one direction
 # Select between slow (0), normal(1), fast(2)
-speed = 0   
+speed = 2   
 
 # Direction: Where the animation moves to. 
 # Choose between left or right 
-direction = 'left' 
+direction = 'right' 
 
 # Background: What the background of the animation is 
 # Choose between white background (True) or white & gray background (False)  
@@ -52,9 +52,9 @@ def main():
                     sys.exit()
                 elif event.key == pygame.K_b:
                     print("Choosing Animation")
-                    Visual_Stimulus_One_Bar.animation(duration, speed , direction, height, width, color_selected, background_white, screen)
+                    Vis_Stimulus.animation(duration, speed , direction, height, width, color_selected, background_white, screen)
 
-        Visual_Stimulus_One_Bar.draw_background(background_white, screen, height, width)
+        Vis_Stimulus.draw_background(background_white, screen, height, width)
         pygame.display.flip()
    
 if __name__ == '__main__':
