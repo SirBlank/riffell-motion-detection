@@ -92,6 +92,7 @@ color_selected = red
 # Setting the trigger event
 stimulus_event = threading.Event()
 running_flag = threading.Event()
+starting_event = threading.Event()
 
 # Pins for the IR LEDs
 # 0 & 1 = Solenoid #1
@@ -102,13 +103,14 @@ running_flag = threading.Event()
 # pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
 pins = [board.C3, board.C2, board.C1, board.C0, board.C7, board.C6, board.C5, board.C4, board.D7, board.D6, board.D5, board.D4]
 
-pattern = {"Left": pins[4], "Right": pins[8], "Speed": [pins[5], pins[9]]}
+pattern = {"Left": pins[4], "Right": pins[8], "Speed": [pins[5], pins[9]], "MD": [pins[10], pins[11]]}
 
 # To change solenoid settings
 # relay_pause: How long until turning one the first relay
 # relay_duration: How long the relay will stay on 
 relay_pause = 5
 relay_duration = 2
+start = True
 
 # Camera settings
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -140,7 +142,7 @@ def init_vis_stim():
     pygame.quit()
 
 def init_relay():
-    Relay_code.Start(relay_pause, relay_duration)
+    Relay_code.Start(relay_pause, relay_duration, True)
 
 def detect_motion(frame, back_sub, kernel, min_contour_area, i):
 
@@ -168,6 +170,8 @@ def detect_motion(frame, back_sub, kernel, min_contour_area, i):
 def motion_detection():
     try:
         running_flag.set() 
+        relay_thread = threading.Thread(target=init_relay)
+        relay_thread.start()  
         stim_thread= threading.Thread(target=init_vis_stim)
         stim_thread.start()
         IR_LED.init(pins)
@@ -243,6 +247,7 @@ def motion_detection():
 
                         is_motion_detected_0 = False
                         is_motion_detected_1 = False
+                        
 
                     prev_x = x2
                 else:
@@ -257,14 +262,17 @@ def motion_detection():
                     elif i == 1:
                         additional_frames_1.append(frame)
                     frame_counter += .5 
-                    if frame_counter - 1 >= additional_frame_size:
+                    if frame_counter - .5 >= additional_frame_size:
                         recording = False
                         stimulus_event.clear()
                         print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
                         print("Finished recording. Retrieving buffer and saving images...")
                         print("Elapsed time:", time.time() - start_time)
-                        folder_name_0 = f'images_{log_time}_a'
-                        folder_name_1 = f'images_{log_time}_b'
+
+                        base_folder = '/media/some_postdoc/78082F15665E4EB7/DATA'
+                        folder_name_0 = os.path.join(base_folder, f'main_images_{log_time}_a')
+                        folder_name_1 = os.path.join(base_folder, f'main_images_{log_time}_b')
+                        
                         # SPECIFY SAVED FOLDER LOCATION HERE
                         os.makedirs(folder_name_0, exist_ok=True)
                         os.makedirs(folder_name_1, exist_ok=True)
@@ -300,9 +308,12 @@ def motion_detection():
                         print("Resuming motion detection...")
     except KeyboardInterrupt:
         print("Stopping motion detection.")
+        Relay_code.request_stop()
+        relay_thread.join()
     finally:
         running_flag.clear()  # Stop the Pygame thread
         stim_thread.join()
+        sleep(1)
         cap.release()
         cv2.destroyAllWindows()
         print("Closing camera and resetting...")
@@ -311,12 +322,9 @@ def motion_detection():
 
 if __name__ == '__main__': 
     try:
-        relay_thread = threading.Thread(target=init_relay)
-        relay_thread.start()  
         motion_detection()
     except KeyboardInterrupt:
         print("Stopping the system.")
     finally:
-        relay_thread.join()
         print("Closing....")
     

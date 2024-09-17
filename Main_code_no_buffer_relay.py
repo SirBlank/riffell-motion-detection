@@ -8,7 +8,6 @@ from datetime import datetime
 from collections import deque
 import Visual_Stimulus_One_Bar
 import IR_LED 
-import Relay_code
 import pygame # 2.6.0
 import threading
 import board # 8.47
@@ -57,7 +56,7 @@ wait_time = 1
 
 # Duration: How long the animation should last
 # Initial: 6 seconds  
-duration = 6
+duration = 3
 
 # NUMBER OF FRAMES RECORDED AFTER MOTION DETECTION = FPS * DURATION_IN_SECONDS
 additional_frame_size = (duration * frame_rate) + ( wait_time * frame_rate)
@@ -104,21 +103,13 @@ pins = [board.C3, board.C2, board.C1, board.C0, board.C7, board.C6, board.C5, bo
 
 pattern = {"Left": pins[4], "Right": pins[8], "Speed": [pins[5], pins[9]]}
 
-# To change solenoid settings
-# relay_pause: How long until turning one the first relay
-# relay_duration: How long the relay will stay on 
-relay_pause = 5
-relay_duration = 2
 
-# Camera settings
+
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 additional_frames_0 = deque(maxlen=additional_frame_size)
 additional_frames_1 = deque(maxlen=additional_frame_size)
-ring_buffer_0 = deque(maxlen=buffer_size)
-ring_buffer_1 = deque(maxlen=buffer_size)
 print(cap.get(cv2.CAP_PROP_EXPOSURE))
 print(cap.get(cv2.CAP_PROP_GAIN))
-
 
 def init_vis_stim():
     # Setup
@@ -139,8 +130,6 @@ def init_vis_stim():
         pygame.display.flip()
     pygame.quit()
 
-def init_relay():
-    Relay_code.Start(relay_pause, relay_duration)
 
 def detect_motion(frame, back_sub, kernel, min_contour_area, i):
 
@@ -182,7 +171,7 @@ def motion_detection():
         # THE HISTORY PARAMETER SPECIFIES THE NUMBER OF PREVIOUS FRAMES THAT THE ALGORITHM CONSIDERS WHEN UPDATING THE BACKGROUND MODEL.
         # INCREASE history = SLOWER ADAPTATION TO CHANGES, LESS SENSITIVE TO SUDDEN OR SHORT-TERM CHANGES IN THE FRAME.
         # INCREASE varThreshold = LESS SENSITIVE MOTION DETECTION
-        back_sub = cv2.createBackgroundSubtractorMOG2(history=400, varThreshold=60, detectShadows=False)
+        back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
         # INCREASE KERNEL SIZE FOR MORE AGGRESSIVE NOISE REDUCTION
         kernel = np.ones((30, 30), np.uint8)
         # DETERMINES THE CONTOUR SIZE TO BE CONSIDERED AS VALID MOTION
@@ -195,11 +184,6 @@ def motion_detection():
                 if not ret:
                     print("Error: Failed to capture image")
                     break
-                if not recording:
-                    if i == 0:
-                        ring_buffer_0.append(frame)
-                    elif i == 1:
-                        ring_buffer_1.append(frame)
 
                 frame_copy = np.copy(frame)
                 if not recording:
@@ -229,7 +213,7 @@ def motion_detection():
                         print("Motion Detected!")
                         stimulus_event.set() 
                         print("Stimulus Starting...")
-                        log_time = datetime.now().strftime("%Y-%-m-%d_%H-%M-%S.%f")[:-3]
+                        log_time = datetime.now().strftime("%Y-%-m-%d_%H:%M:%S.%f")[:-3]
                         print("Start: ", log_time)
                         start_time = time.time()
                         # Logs start_time
@@ -257,31 +241,23 @@ def motion_detection():
                     elif i == 1:
                         additional_frames_1.append(frame)
                     frame_counter += .5 
-                    if frame_counter - 1 >= additional_frame_size:
+                    if frame_counter - .5 >= additional_frame_size:
                         recording = False
                         stimulus_event.clear()
                         print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
                         print("Finished recording. Retrieving buffer and saving images...")
                         print("Elapsed time:", time.time() - start_time)
-                        folder_name_0 = f'images_{log_time}_a'
-                        folder_name_1 = f'images_{log_time}_b'
+
+                        base_folder = '/media/some_postdoc/78082F15665E4EB7/DATA'
+                        folder_name_0 = os.path.join(base_folder, f'main_images_{log_time}_a')
+                        folder_name_1 = os.path.join(base_folder, f'main_images_{log_time}_b')
+                        
                         # SPECIFY SAVED FOLDER LOCATION HERE
                         os.makedirs(folder_name_0, exist_ok=True)
                         os.makedirs(folder_name_1, exist_ok=True)
                                              
-                        ring_buffer_0_np = np.array(ring_buffer_0)
-                        ring_buffer_1_np = np.array(ring_buffer_1)
-
-                        # Handle empty ring_buffers by checking their shape before concatenation
-                        if ring_buffer_0_np.size == 0:
-                            combined_frames_0 = additional_frames_0
-                        else:
-                            combined_frames_0 = np.concatenate((ring_buffer_0, additional_frames_0))
-
-                        if ring_buffer_1_np.size == 0:
-                            combined_frames_1 = additional_frames_1
-                        else:
-                            combined_frames_1 = np.concatenate((ring_buffer_1, additional_frames_1))
+                        combined_frames_0 = additional_frames_0
+                        combined_frames_1 = additional_frames_1
 
                         for idx, frame in enumerate(combined_frames_0):
                             cv2.imwrite(os.path.join(folder_name_0, f'frame_{idx}_0.bmp'), frame)
@@ -290,8 +266,6 @@ def motion_detection():
                         print("Images Saved!")
                         additional_frames_0.clear()
                         additional_frames_1.clear()
-                        ring_buffer_0.clear()
-                        ring_buffer_1.clear()
                         del combined_frames_0
                         del combined_frames_1
                         back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
@@ -309,14 +283,5 @@ def motion_detection():
 
                     
 
-if __name__ == '__main__': 
-    try:
-        relay_thread = threading.Thread(target=init_relay)
-        relay_thread.start()  
-        motion_detection()
-    except KeyboardInterrupt:
-        print("Stopping the system.")
-    finally:
-        relay_thread.join()
-        print("Closing....")
-    
+if __name__ == '__main__':   
+    motion_detection()

@@ -250,38 +250,29 @@ def motion_detection():
                         is_motion_detected_0 = False
                     elif i == 1:
                         is_motion_detected_1 = False
-
                 if recording:
                     if i == 0:
                         additional_frames_0.append(frame)
                     elif i == 1:
                         additional_frames_1.append(frame)
                     frame_counter += .5 
-                    if frame_counter - 1 >= additional_frame_size:
+                    if frame_counter - .5 >= additional_frame_size:
                         recording = False
                         stimulus_event.clear()
                         print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
                         print("Finished recording. Retrieving buffer and saving images...")
                         print("Elapsed time:", time.time() - start_time)
-                        folder_name_0 = f'images_{log_time}_a'
-                        folder_name_1 = f'images_{log_time}_b'
+
+                        base_folder = '/media/some_postdoc/78082F15665E4EB7/DATA'
+                        folder_name_0 = os.path.join(base_folder, f'main_images_{log_time}_a')
+                        folder_name_1 = os.path.join(base_folder, f'main_images_{log_time}_b')
+                        
                         # SPECIFY SAVED FOLDER LOCATION HERE
                         os.makedirs(folder_name_0, exist_ok=True)
                         os.makedirs(folder_name_1, exist_ok=True)
                                              
-                        ring_buffer_0_np = np.array(ring_buffer_0)
-                        ring_buffer_1_np = np.array(ring_buffer_1)
-
-                        # Handle empty ring_buffers by checking their shape before concatenation
-                        if ring_buffer_0_np.size == 0:
-                            combined_frames_0 = additional_frames_0
-                        else:
-                            combined_frames_0 = np.concatenate((ring_buffer_0, additional_frames_0))
-
-                        if ring_buffer_1_np.size == 0:
-                            combined_frames_1 = additional_frames_1
-                        else:
-                            combined_frames_1 = np.concatenate((ring_buffer_1, additional_frames_1))
+                        combined_frames_0 = additional_frames_0
+                        combined_frames_1 = additional_frames_1
 
                         for idx, frame in enumerate(combined_frames_0):
                             cv2.imwrite(os.path.join(folder_name_0, f'frame_{idx}_0.bmp'), frame)
@@ -290,8 +281,6 @@ def motion_detection():
                         print("Images Saved!")
                         additional_frames_0.clear()
                         additional_frames_1.clear()
-                        ring_buffer_0.clear()
-                        ring_buffer_1.clear()
                         del combined_frames_0
                         del combined_frames_1
                         back_sub = cv2.createBackgroundSubtractorMOG2(history=180, varThreshold=60, detectShadows=False)
