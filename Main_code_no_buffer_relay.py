@@ -19,6 +19,8 @@ import board # 8.47
 # EasyPySpin: 2.0.1
 # opencv-python: 4.10.0.84
 # numpy: 1.26.4
+# threading: Python version
+# sleep: Python version 
 
 
 # Camera serial number can be found by launching SpinView with cameras plugged in.
@@ -56,7 +58,7 @@ wait_time = 1
 
 # Duration: How long the animation should last
 # Initial: 6 seconds  
-duration = 3
+duration = 6
 
 # NUMBER OF FRAMES RECORDED AFTER MOTION DETECTION = FPS * DURATION_IN_SECONDS
 additional_frame_size = (duration * frame_rate) + ( wait_time * frame_rate)
@@ -91,6 +93,7 @@ color_selected = red
 # Setting the trigger event
 stimulus_event = threading.Event()
 running_flag = threading.Event()
+starting_event = threading.Event()
 
 # Pins for the IR LEDs
 # 0 & 1 = Solenoid #1
@@ -101,16 +104,17 @@ running_flag = threading.Event()
 # pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
 pins = [board.C3, board.C2, board.C1, board.C0, board.C7, board.C6, board.C5, board.C4, board.D7, board.D6, board.D5, board.D4]
 
-pattern = {"Left": pins[4], "Right": pins[8], "Speed": [pins[5], pins[9]]}
+# CHANGE the pattern for the lights here by replacing the pins[#]
+pattern = {"Left": pins[4], "Right": pins[8], "Speed": [pins[5], pins[9]], "MD": [pins[10], pins[11]]}
 
-
-
+# Camera settings
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 additional_frames_0 = deque(maxlen=additional_frame_size)
 additional_frames_1 = deque(maxlen=additional_frame_size)
 print(cap.get(cv2.CAP_PROP_EXPOSURE))
 print(cap.get(cv2.CAP_PROP_GAIN))
 
+# The function that initializes the visual stimulus
 def init_vis_stim():
     # Setup
     # CHANGE DISPLAY TO 0 FOR MAIN MONITOR
@@ -121,7 +125,7 @@ def init_vis_stim():
             if event.type == pygame.QUIT:
                 running_flag.clear()
         
-        # Check if we need to start stimulus animation
+        # Check to start stimulus animation
         if stimulus_event.is_set():
             Visual_Stimulus_One_Bar.animation(duration, speed, direction, height, width, color_selected, background_white, screen, pins, wait_time, pattern)
             stimulus_event.clear() 
@@ -131,6 +135,7 @@ def init_vis_stim():
     pygame.quit()
 
 
+# The function that detects motion 
 def detect_motion(frame, back_sub, kernel, min_contour_area, i):
 
     fg_mask = back_sub.apply(frame)
@@ -151,16 +156,16 @@ def detect_motion(frame, back_sub, kernel, min_contour_area, i):
             return contours[max_index]
     return None
 
-# Function for three bar horizontal animation 
-# Parameters: duration, color, dimensions, speed, direction, background
-
+# the main function of motion detection 
 def motion_detection():
     try:
+         # Start the thread for the relay, visual stimulus and IR LEDs
         running_flag.set() 
         stim_thread= threading.Thread(target=init_vis_stim)
         stim_thread.start()
         IR_LED.init(pins)
         print("Starting motion detection. Press Ctrl+C to stop.")
+        sleep(5)
 
         prev_x = None
         recording = False
@@ -178,6 +183,7 @@ def motion_detection():
         # Example: ONLY CONTOURS WITH AN AREA OF 100 PIXELS OR MORE WILL BE CONSIDERED AS VALID MOTION.
         min_contour_area = 100
 
+        # The loop to check for motion detection in each camera (Please don't change unless it is necessary)
         while True:
             read_values = cap.read()
             for i, (ret, frame) in enumerate(read_values):
@@ -186,6 +192,7 @@ def motion_detection():
                     break
 
                 frame_copy = np.copy(frame)
+
                 if not recording:
                     contour = detect_motion(frame_copy, back_sub, kernel, min_contour_area, i)
 
@@ -213,7 +220,7 @@ def motion_detection():
                         print("Motion Detected!")
                         stimulus_event.set() 
                         print("Stimulus Starting...")
-                        log_time = datetime.now().strftime("%Y-%-m-%d_%H:%M:%S.%f")[:-3]
+                        log_time = datetime.now().strftime("%Y-%-m-%d_%H-%M-%S.%f")[:-3]
                         print("Start: ", log_time)
                         start_time = time.time()
                         # Logs start_time
@@ -234,7 +241,6 @@ def motion_detection():
                         is_motion_detected_0 = False
                     elif i == 1:
                         is_motion_detected_1 = False
-
                 if recording:
                     if i == 0:
                         additional_frames_0.append(frame)
@@ -248,11 +254,10 @@ def motion_detection():
                         print("Finished recording. Retrieving buffer and saving images...")
                         print("Elapsed time:", time.time() - start_time)
 
+                        # SPECIFY SAVED FOLDER LOCATION HERE
                         base_folder = '/media/some_postdoc/78082F15665E4EB7/DATA'
                         folder_name_0 = os.path.join(base_folder, f'main_images_{log_time}_a')
                         folder_name_1 = os.path.join(base_folder, f'main_images_{log_time}_b')
-                        
-                        # SPECIFY SAVED FOLDER LOCATION HERE
                         os.makedirs(folder_name_0, exist_ok=True)
                         os.makedirs(folder_name_1, exist_ok=True)
                                              
@@ -275,13 +280,20 @@ def motion_detection():
     except KeyboardInterrupt:
         print("Stopping motion detection.")
     finally:
-        running_flag.clear()  # Stop the Pygame thread
+        running_flag.clear()  
         stim_thread.join()
+        sleep(1)
         cap.release()
         cv2.destroyAllWindows()
         print("Closing camera and resetting...")
 
+
                     
 
-if __name__ == '__main__':   
-    motion_detection()
+if __name__ == '__main__': 
+    try:
+        motion_detection()
+    except KeyboardInterrupt:
+        print("Stopping the system.")
+    finally:
+        print("Closing....")
