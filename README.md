@@ -1,5 +1,7 @@
 # Python Scripts Overview
 
+## [In Progress]
+
 The `motion_detection` folder contains the main motion detection script that you will be using and also some other scripts that can help you check the true fps and perform other simple tasks:
 
 1. **`motion_detection_synchronized_capture.py`**: The primary script for performing motion detection, recording videos, and saving frames as AVI files. This file includes comprehensive instructions and comments for adjusting parameters.
