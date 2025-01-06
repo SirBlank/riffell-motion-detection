@@ -4,7 +4,7 @@
 
 The `motion_detection_rpi` folder contains previously written motion detection scripts for Raspberry Pi devices.
 
-The `motion_detection_v2` folder contains previously written motion detection script and also some other scripts that can help you check the true fps and perform other simple tasks:
+The `motion_detection_opencv_v1` folder contains previously written motion detection script and also some other scripts that can help you check the true fps and perform other simple tasks (written by August 2024):
 
 1. **`motion_detection_synchronized_capture.py`**: The primary script for performing motion detection, recording videos, and saving frames as AVI files. This file includes comprehensive instructions and comments for adjusting parameters.
 
@@ -22,7 +22,9 @@ The `motion_detection_v2` folder contains previously written motion detection sc
 
 8. **`synchronized_recording.py`**: Records video using two synchronized cameras.
 
-The `motion_detection_v3` folder contains the current motion detection scripts.
+The `motion_detection_opencv_v2` folder contains previously written motion detection scripts (written by September 2024).
+
+The `motion_detection_opencv_v3` folder contains the current, most updated motion detection scripts (written by December 2024).
 
 # System Specifications and Software Versions
 
