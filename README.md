@@ -1,8 +1,10 @@
-# Python Scripts Overview
+# Overview
 
 ## [In Progress]
 
-The `motion_detection` folder contains the main motion detection script that you will be using and also some other scripts that can help you check the true fps and perform other simple tasks:
+The `motion_detection_rpi` folder contains previously written motion detection scripts for Raspberry Pi devices.
+
+The `motion_detection_v2` folder contains previously written motion detection script and also some other scripts that can help you check the true fps and perform other simple tasks:
 
 1. **`motion_detection_synchronized_capture.py`**: The primary script for performing motion detection, recording videos, and saving frames as AVI files. This file includes comprehensive instructions and comments for adjusting parameters.
 
@@ -19,6 +21,8 @@ The `motion_detection` folder contains the main motion detection script that you
 7. **`synchronized_preview.py`**: Provides preview windows for two synchronized cameras.
 
 8. **`synchronized_recording.py`**: Records video using two synchronized cameras.
+
+The `motion_detection_v3` folder contains the current motion detection scripts.
 
 # System Specifications and Software Versions
 
