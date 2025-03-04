@@ -9,11 +9,11 @@ serial_number_1 = "24122965"  # secondary camera serial number
 cap = EasyPySpin.SynchronizedVideoCapture(serial_number_0, serial_number_1)
 
 # CHANGE CAMERA SETTINGS HERE
-cap.set(cv2.CAP_PROP_FPS, 140)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1200)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 800)
+cap.set(cv2.CAP_PROP_FPS, 226)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
-buffer_size = 1400
+buffer_size = 2260
 ring_buffer = deque(maxlen=buffer_size)
 ring_buffer_2 = deque(maxlen=buffer_size)
 frames_processed = 0
