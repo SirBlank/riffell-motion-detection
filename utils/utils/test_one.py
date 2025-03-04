@@ -9,18 +9,10 @@ async def main():
         # Retry logic
         while error_counter < 5:
             try:
-                async with FlowController('/dev/ttyController1') as flow_controller1:
-                    print(await flow_controller1.get())
-                    await flow_controller1.set_gas('Air')
-                    await flow_controller1.set_flow_rate(1)
-                async with FlowController('/dev/ttyController2') as flow_controller2:
-                    print(await flow_controller2.get())
-                    await flow_controller2.set_gas('Air')
-                    await flow_controller2.set_flow_rate(2)
                 async with FlowController('/dev/ttyController3') as flow_controller3:
                     print(await flow_controller3.get())
                     await flow_controller3.set_gas('Air')
-                    await flow_controller3.set_flow_rate(3)
+                    await flow_controller3.set_flow_rate(200)
                 break
 
             except Exception as e:

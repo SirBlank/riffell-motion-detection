@@ -6,16 +6,22 @@ import threading
 import IR_LED
 import board
 import digitalio
-import csv
 import random
 import os
 import pandas as pd
 from datetime import datetime
+import signal
+import sys
+from time import sleep
 
-
-"""
-current working script
-"""
+# ---- COLORS ----
+# percentages of gray (values from 0-1)
+gray_10 = (.9, .9, .9, 1)
+gray_25 = (.75, .75, 75, 1)
+gray_50 = (.5, .5, .5, 1)
+gray_75 = (.25, .25, .25, 1)
+white = (1, 1, 1, 1)
+black = (0, 0, 0, 1)
 
 # Window dimensions
 window_width, window_height = 1920, 1080
@@ -39,13 +45,13 @@ window = pyglet.window.Window(
 
 # PARAMS TO ADJUST:
 # Bar properties
-bar_width = 70
-bar_height = 700
-bar_color = (0, 0, 0, 1)
+bar_width = 210  # ~6cm
+bar_height = 700  # ~20cm
+bar_color = gray_25
 background_white = True
-max_extent_dist = 400 # Maximum extent distance from the center
+max_extent_dist = 0  # Maximum extent distance from the center, original: 400
 bar_speed = 300  # Speed in pixels per second
-animation_duration = max_extent_dist*4/bar_speed  # Duration of the animation in seconds
+animation_duration = max_extent_dist * 4 / bar_speed  # Duration of the animation in seconds
 
 # Initial states
 animation_active = False
@@ -59,21 +65,16 @@ pins = [
 ]
 
 pattern = {
-    "Left": pins[8],
+    "Left": pins[7],
     "Right": pins[4],
-    "MD": [pins[10], pins[11]]
+    "Center": pins[5]
 }
 
-# Set up the LED
-LED_PIN = board.C6
-led = digitalio.DigitalInOut(LED_PIN)
-led.direction = digitalio.Direction.OUTPUT
-led.value = False
-led_state = False
+def signal_handler(sig, frame):
+    print("Animation exiting gracefully...")
+    sys.exit(0)
 
-led_dataset = []
-last_led_on_time = None
-
+signal.signal(signal.SIGINT, signal_handler)
 
 def setup_projection():
     glMatrixMode(GL_PROJECTION)
@@ -132,7 +133,6 @@ def update_bar_position(dt):
     # Calculate distance to move based on speed and time
     move_distance = speed_pixels_per_sec * dt
     bar_x += direction * move_distance
-    center = False
 
     # Check if the bar has reached max extent and needs to bounce
     middle_pos = (window_width - bar_width) / 2
@@ -142,50 +142,52 @@ def update_bar_position(dt):
     if bar_x <= farthest_left or bar_x >= farthest_right:
         direction *= -1  # Reverse direction
 
-    # Reset position to center after animation duration
+    # After animation duration ends...
     if elapsed_time >= animation_duration:
+        # Reset bar position to the center
+        print("Animation ended")
         animation_active = False
-        time.sleep(1)
         bar_x = middle_pos
+
+        # Reset LEDs after animation ends
+        direction = 0
         IR_LED.LED_off(pattern["Left"])
         IR_LED.LED_off(pattern["Right"])
-        data = [['bar_width', bar_width], ['bar_height', bar_height], ['bar_color', bar_color],
-                ['background_white', background_white], ['max_extent_dist', max_extent_dist], ['bar_speed', bar_speed],
-                ['animation_duration', animation_duration], ['direction', direction]]
+        IR_LED.LED_on(pattern["Center"])
+
+        data = [
+            ['bar_width', bar_width],
+            ['bar_height', bar_height],
+            ['bar_color', bar_color],
+            ['background_white', background_white],
+            ['max_extent_dist', max_extent_dist],
+            ['bar_speed', bar_speed],
+            ['animation_duration', animation_duration],
+            ['direction', direction],
+            ['wait_frames', ]
+        ]
         df = pd.DataFrame(data, columns=['variable_names', 'values'])
         base_folder = '/mnt/data/DATA'
         df.to_csv(os.path.join(base_folder, f'{log_time}_viz_params.csv'), index=False)
-
 
     # LED Blinking Logic
     handle_led_logic(direction)
 
 def handle_led_logic(direction):
-    if direction == 1: # if right
+    if direction == 1:  # if right
         IR_LED.LED_off(pattern["Left"])
         IR_LED.LED_on(pattern["Right"])
-    else: # if left
+    elif direction == -1:  # if left
         IR_LED.LED_off(pattern["Right"])
         IR_LED.LED_on(pattern["Left"])
+    else: # if middle
+        IR_LED.LED_off(pattern["Right"])
+        IR_LED.LED_off(pattern["Left"])
+        IR_LED.LED_on(pattern["Center"])
 
 @window.event
 def on_close():
     pyglet.app.exit()
-
-def blink_led(dt):
-    global led_state, led_dataset, last_led_on_time
-    led_state = not led_state
-    led.value = led_state
-    current_time = time.time()
-    if led_state:
-        # LED turned on
-        last_led_on_time = current_time
-    else:
-        # LED turned off
-        if last_led_on_time is not None:
-            diff = current_time - last_led_on_time
-            led_dataset.append({'on': last_led_on_time, 'off': current_time, 'diff': diff})
-            last_led_on_time = None
 
 def start_animation(speed, duration, color, background_white_input, max_extent_distance):
     global start_time, animation_active, log_time
@@ -195,7 +197,7 @@ def start_animation(speed, duration, color, background_white_input, max_extent_d
     background_white = background_white_input
     speed_pixels_per_sec = speed
     animation_duration = duration
-    bar_color = tuple(c / 255.0 for c in color[:3]) + (color[3],)
+    bar_color = color
     start_time = time.time()
     animation_active = True
     direction = random.choice([-1, 1])  # 1 for right, -1 for left
@@ -203,15 +205,12 @@ def start_animation(speed, duration, color, background_white_input, max_extent_d
     print(log_time)
     print(direction)
 
-    # Initialize the LEDs
-    IR_LED.init(pins)
-
-    # Start LED blinking
-    pyglet.clock.schedule_interval(blink_led, 0.0714)
+    # Turn off center light at the start of the animation
+    IR_LED.LED_off(pattern["Center"])
 
 def socket_server():
     host = 'localhost'
-    port = 5000
+    port = 3000
     s = None
 
     try:
@@ -241,18 +240,25 @@ def socket_server():
         print("Socket server shutting down.")
         if s:
             s.close()
+        for pin in pins:
+            IR_LED.LED_off(pin)
 
 if __name__ == "__main__":
-    # Start the socket server in a separate thread
     server_thread = threading.Thread(target=socket_server, daemon=True)
     server_thread.start()
 
     pyglet.clock.schedule_interval(update_bar_position, 1 / 240.0)
     try:
+        # Initialize the LEDs
+        print("Initializing LEDs...")
+        IR_LED.init(pins)
+        IR_LED.LED_off(pattern["Left"])
+        IR_LED.LED_off(pattern["Right"])
+        IR_LED.LED_on(pattern["Center"])
         pyglet.app.run()
     except KeyboardInterrupt:
         print("Stopping animation...")
     finally:
-        print("Closing...")
+        print("Animation and LEDs closed")
         for pin in pins:
             IR_LED.LED_off(pin)

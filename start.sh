@@ -1,5 +1,15 @@
 #!/bin/bash
-python3 curr-animation-socket.py &
-python3 main_code_socket_no_led.py &
-python3 alicat_control.py &
+
+python animation.py &
+pid1=$!
+python main.py
+pid2=$!
+
+cleanup() {
+    echo "Stopping all Python processes..."
+    kill $pid1 $pid2 $pid3
+}
+
+trap cleanup SIGINT
+
 wait

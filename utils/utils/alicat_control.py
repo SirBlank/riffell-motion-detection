@@ -4,16 +4,16 @@ from alicat import FlowController
 """
 Original Plan:
 - First 5 minutes: emit only air.
-- After first 5 minutes: emit CO2 every 10 minutes for 2 seconds.
+- After first 5 minutes: emit CO2 every 5 minutes for 5 seconds.
 - After first 5 minutes: emit odor every 5 minutes for 2 seconds in addition to air and CO2.
 """
 
 error_counter = 0
 odor = "H2"  # Change odor here
-initial_air_duration = 5*60 # first _ minutes, only emit air
-co2_interval = 10*60 # emit CO2 every _ minutes
-co2_duration = 2 # emit CO2 for _ seconds
-co2_and_odor_interval = 5*60 # emit CO2 and odor every _ minutes
+initial_air_duration = 0 # first _ minutes, only emit air
+co2_interval = 5*60 # emit CO2 every _ minutes
+co2_duration = 5 # emit CO2 for _ seconds
+co2_and_odor_interval = 60*60 # emit CO2 and odor every _ minutes
 co2_and_odor_duration = 2 # emit CO2 and odor for _ seconds
 
 async def change_flow(flow_controller, gas, flow_rate):
@@ -42,11 +42,11 @@ async def set_air_and_co2(controller1, controller2, controller3):
 # Emit air, CO2, and odor
 async def set_air_co2_and_odor(controller1, controller2, controller3):
     await asyncio.gather(
-        change_flow(controller1, 'Air', 170),
-        change_flow(controller2, 'CO2', 15),
-        change_flow(controller3, odor, 15)
+        change_flow(controller1, 'Air', 140),
+        change_flow(controller2, 'CO2', 30),
+        change_flow(controller3, odor, 30)
     )
-    print(f"Air, CO2, and {odor}: Controller1 (Air) at 170 SCCM, Controller2 (CO2) at 30 SCCM, Controller3 ({odor}) at 20 SCCM")
+    print(f"Air, CO2, and {odor}: Controller1 (Air) at 170 SCCM, Controller2 (CO2) at 30 SCCM, Controller3 ({odor}) at 30 SCCM")
 
 async def manage_states(controller1, controller2, controller3):
     # Emit air only
@@ -75,9 +75,9 @@ async def main():
         # Retry logic
         while error_counter < 5:
             try:
-                async with FlowController('/dev/ttyController1') as controller1, \
+                async with FlowController('/dev/ttyController1') as controller3, \
                            FlowController('/dev/ttyController2') as controller2, \
-                           FlowController('/dev/ttyController3') as controller3:
+                           FlowController('/dev/ttyController3') as controller1:
                     print(await controller1.get())
                     print(await controller2.get())
                     print(await controller3.get())
