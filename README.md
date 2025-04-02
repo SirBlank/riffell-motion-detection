@@ -1,30 +1,20 @@
 # Overview
 
-## [In Progress]
+## Free-Flight Arena for Multisensory Integration in Mosquitoes
 
-The `motion_detection_rpi` folder contains previously written motion detection scripts for Raspberry Pi devices.
 
-The `motion_detection_opencv_v1` folder contains previously written motion detection script and also some other scripts that can help you check the true fps and perform other simple tasks (written by August 2024):
+This research, conducted by University of Washington's Riffell Lab and led by C. Ruiz, aims to characterize steering behavior in free-flying yellow fever mosquitoes, focusing on how olfactory cues influence visual preferences. A Linux-based system controls four modules:
 
-1. **`motion_detection_synchronized_capture.py`**: The primary script for performing motion detection, recording videos, and saving frames as AVI files. This file includes comprehensive instructions and comments for adjusting parameters.
+- **Imaging:** High-resolution cameras track flight patterns.
+- **Odor Delivery:** Releases a controlled mix of CO2 and test odors.
+- **Projection:** Displays visual stimuli to observe responses.
+- **IR Synchronization:** Blinking IR LEDs encode and timestamp visual events for synchronization.
 
-2. **`motion_detection_synchronized_capture_bmp.py`**: Similar to the main script but saves frames in BMP format instead of AVI.
+## Scripts
 
-3. **`motion_detection_no_viz.py`**: A variant of the main script that operates without displaying a camera preview window.
-
-4. **`debug_fps.py`**: Useful for checking the effective FPS during frame saving to a buffer while motion detection is active.
-
-5. **`easypyspin_preview_window.py`**: Displays a preview window for a single camera, without synchronization.
-
-6. **`synchronized_capture.py`**: Captures images using two synchronized cameras.
-
-7. **`synchronized_preview.py`**: Provides preview windows for two synchronized cameras.
-
-8. **`synchronized_recording.py`**: Records video using two synchronized cameras.
-
-The `motion_detection_opencv_v2` folder contains previously written motion detection scripts (written by September 2024).
-
-The `motion_detection_opencv_v3` folder contains the current, most updated motion detection scripts (written by December 2024).
+- **`main.py`**: The primary script for performing motion detection, sending signal to trigger the animation script, recording image frames, and saving image frames as BMP files. This file includes comprehensive instructions and comments for adjusting motion detection parameters and camera properties.
+- **`animation.py`**: The animation script that renders a moving bar as visual stimulus when triggered by motion detection.
+- **`alicat_input.py`**: The mass flow controller script that adjusts and toggles airflow based on user input.
 
 # System Specifications and Software Versions
 
@@ -73,7 +63,7 @@ The `motion_detection_opencv_v3` folder contains the current, most updated motio
 
 ## Part 2: Installing EasyPySpin
 
-### Step 1: EasyPySpin Installation
+### Step 6: EasyPySpin Installation
 
 1. Open a terminal and execute the following command:
    ```bash
@@ -93,3 +83,7 @@ The `motion_detection_opencv_v3` folder contains the current, most updated motio
 
     cap.release()
     ```
+
+## Part 3: Running an Experiment
+
+### Step 7: 
