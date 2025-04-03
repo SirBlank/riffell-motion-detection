@@ -86,4 +86,10 @@ This research, conducted by University of Washington's Riffell Lab and led by C.
 
 ## Part 3: Running an Experiment
 
-### Step 7: 
+### Step 7: Preparing Terminals
+
+1. Open two terminal windows and ensure that your environment or virtual environment is set up in both.
+
+2. On terminal 1, run `bash start.sh`. On terminal 2, run `python alicat_input.py`.
+
+3. Follow the instructions displayed in your terminal to use the console. To stop the scripts, press `CTRL+C` in both terminals to terminate the Python processes.
