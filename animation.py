@@ -14,14 +14,20 @@ import signal
 import sys
 from time import sleep
 
+"""
+hopefully fixed led wait time sync with bar animation
+"""
+
 # ---- COLORS ----
 # percentages of gray (values from 0-1)
 gray_10 = (.9, .9, .9, 1)
-gray_25 = (.75, .75, 75, 1)
-gray_50 = (.5, .5, .5, 1)
+gray_25 = (.75, .75, .75, 1)
+gray_50 = (.5, .5, .5, 1) # bar11
 gray_75 = (.25, .25, .25, 1)
 white = (1, 1, 1, 1)
 black = (0, 0, 0, 1)
+bar_08 = (89/255, 89/255, 89/255, 1)
+bar_07 = (77/255, 77/255, 77/255, 1)
 
 # Window dimensions
 window_width, window_height = 1920, 1080
@@ -45,17 +51,18 @@ window = pyglet.window.Window(
 
 # PARAMS TO ADJUST:
 # Bar properties
-bar_width = 210  # ~6cm
-bar_height = 700  # ~20cm
-bar_color = gray_25
+bar_width = 210  # original: 210, ~6cm
+bar_height = 700  # original: 210, ~20cm
+bar_color = black
 background_white = True
-max_extent_dist = 0  # Maximum extent distance from the center, original: 400
-bar_speed = 300  # Speed in pixels per second
+max_extent_dist = 400  # Maximum extent distance from the center, original: 400
+bar_speed = 300  # Speed in pixels per second, original: 300
 animation_duration = max_extent_dist * 4 / bar_speed  # Duration of the animation in seconds
 
 # Initial states
 animation_active = False
 bar_x = (window_width - bar_width) / 2  # Start at middle position
+direction = 0
 
 # Define pins and patterns for LEDs
 pins = [
@@ -84,27 +91,21 @@ def setup_projection():
     glLoadIdentity()
 
 def draw_background(background_white, window_width, window_height):
-    if background_white:
-        glClearColor(1.0, 1.0, 1.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
-    else:
-        glClearColor(1.0, 1.0, 1.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
-        glBegin(GL_QUADS)
-        glColor4f(133.0 / 255.0, 132.0 / 255.0, 131.0 / 255.0, 1.0)
-        glVertex2f(0, window_height // 2)
-        glVertex2f(window_width, window_height // 2)
-        glVertex2f(window_width, window_height)
-        glVertex2f(0, window_height)
-        glEnd()
-
-        glBegin(GL_QUADS)
-        glColor4f(1.0, 1.0, 1.0, 1.0)
-        glVertex2f(0, 0)
-        glVertex2f(window_width, 0)
-        glVertex2f(window_width, window_height // 2)
-        glVertex2f(0, window_height // 2)
-        glEnd()
+    glClearColor(0, 0, 0, 1.0)
+    glClear(GL_COLOR_BUFFER_BIT)
+    glBegin(GL_QUADS)
+    glColor4f(1, 1, 1, 1.0)
+    # NOTE: The coordinates specified here are used to reduced luminance on the edges of the projection as the projector projects far beyond the edges of the projector screen.
+    # top left
+    glVertex2f(435, 1075)
+    # top right
+    glVertex2f(1460, 1075)
+    # bottom right
+    glVertex2f(1460, 40)
+    # bottom left
+    glVertex2f(435, 40)
+    glEnd()
+    
 
 def draw_vertical_bar(x, bar_width, bar_height, window_height, bar_color):
     glColor4f(*bar_color)
@@ -114,6 +115,9 @@ def draw_vertical_bar(x, bar_width, bar_height, window_height, bar_color):
     glVertex2f(x + bar_width, (window_height - bar_height) / 2 + bar_height)
     glVertex2f(x, (window_height - bar_height) / 2 + bar_height)
     glEnd()
+
+    handle_led_logic(direction)
+
 
 @window.event
 def on_draw():
@@ -150,7 +154,6 @@ def update_bar_position(dt):
         bar_x = middle_pos
 
         # Reset LEDs after animation ends
-        direction = 0
         IR_LED.LED_off(pattern["Left"])
         IR_LED.LED_off(pattern["Right"])
         IR_LED.LED_on(pattern["Center"])
@@ -164,14 +167,14 @@ def update_bar_position(dt):
             ['bar_speed', bar_speed],
             ['animation_duration', animation_duration],
             ['direction', direction],
-            ['wait_frames', ]
+            ['wait_frames', 20]
         ]
         df = pd.DataFrame(data, columns=['variable_names', 'values'])
         base_folder = '/mnt/data/DATA'
         df.to_csv(os.path.join(base_folder, f'{log_time}_viz_params.csv'), index=False)
 
-    # LED Blinking Logic
-    handle_led_logic(direction)
+        direction = 0
+
 
 def handle_led_logic(direction):
     if direction == 1:  # if right
@@ -194,6 +197,8 @@ def start_animation(speed, duration, color, background_white_input, max_extent_d
     global background_white, speed_pixels_per_sec, animation_duration, bar_color, direction
 
     # Assign the parameter values to the global variables
+    # glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    # glEnable(GL_BLEND)
     background_white = background_white_input
     speed_pixels_per_sec = speed
     animation_duration = duration
@@ -201,8 +206,7 @@ def start_animation(speed, duration, color, background_white_input, max_extent_d
     start_time = time.time()
     animation_active = True
     direction = random.choice([-1, 1])  # 1 for right, -1 for left
-    log_time = datetime.now().strftime("%Y-%-m-%d_%H-%M-%S.%f")[:-3]
-    print(log_time)
+    log_time = int(time.time() * 1000)
     print(direction)
 
     # Turn off center light at the start of the animation
@@ -244,6 +248,7 @@ def socket_server():
             IR_LED.LED_off(pin)
 
 if __name__ == "__main__":
+    # Start the socket server in a separate thread
     server_thread = threading.Thread(target=socket_server, daemon=True)
     server_thread.start()
 

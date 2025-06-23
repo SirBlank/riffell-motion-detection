@@ -1,8 +1,11 @@
 #!/bin/bash
 
-python animation.py &
+# Animation script here
+python animation_v3.py &
 pid1=$!
-python main.py
+
+# Camera script here
+python main_code.py
 pid2=$!
 
 cleanup() {

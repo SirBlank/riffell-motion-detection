@@ -13,7 +13,7 @@ import sys
 # ==============================
 # GLOBAL VARIABLES
 # ==============================
-start_motion_detection = False
+start_motion_detection = False  # Toggled by pressing '0' in the OpenCV window
 
 # Additional variables for manual recording
 manual_recording = False
@@ -38,7 +38,7 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1440)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 # CAMERA EXPOSURE TIME (MICROSECONDS)
-cap.set(cv2.CAP_PROP_EXPOSURE, 1600)
+cap.set(cv2.CAP_PROP_EXPOSURE, 1500)
 
 # CAMERA GAIN
 cap.set(cv2.CAP_PROP_GAIN, 0)
@@ -52,7 +52,7 @@ cap.set(cv2.CAP_PROP_GAIN, 0)
 duration = 5.4
 
 # Number of frames before triggering the animation
-wait_frames = 20
+wait_frames = 20 # If changed, this value should be updated in animation_v2.py csv section
 
 # NUMBER OF FRAMES RECORDED AFTER MOTION DETECTION = FPS * DURATION_IN_SECONDS
 additional_frame_size = (duration * frame_rate + wait_frames)
@@ -126,7 +126,7 @@ def motion_detection():
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((host, port))
-            print("[INPUT]\nPress '0' in the preview window to toggle motion detection \nPress '1' to start/stop manual recording \nPress 'q' to quit.")
+            print("[INPUT]\nPress '0' in the preview window to toggle motion detection \nPress '1' to start/stop manual recording \nPress 'q' to quit the cameras. \n'CTRL+C' to kill the script.")
 
             # The loop to check for motion detection in each camera (Please don't change unless it is necessary)
             while running_flag.is_set():
@@ -205,11 +205,12 @@ def motion_detection():
                             # STARTING VIDEO RECORDING
                             recording = True
                             frame_counter = 0
-                            start_time = datetime.now()
-                            start_time_log = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
-                            print(f"Motion Detected! Start time: {start_time_log}")
+                            log_time = int(time.time() * 1000)
+                            start_elapse = time.time()
+                            start_time = datetime.now().strftime("%Y-%-m-%d_%H-%M-%S.%f")[:-3]
+                            print("Start: ", start_time)
                             with open("time_log.txt", mode='a') as file:
-                                file.write(f"Start time: {start_time} \n")
+                                file.write(f"Start time: {log_time} \n")
 
                     # If we are recording, capture frames
                     if recording:
@@ -227,17 +228,15 @@ def motion_detection():
                         else:
                             # STOP RECORDING
                             recording = False
-                            end_time = datetime.now()
-                            end_time_log = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
-                            print(f"End: {end_time_log}")
-                            print(f"Elapsed Time: {end_time-start_time}")
-                            print("Finished recording. Saving images...")
+                            print("End: ", datetime.now().strftime("%Y%-m-%d_%H:%M:%S.%f")[:-3])
+                            print("Finished recording. Retrieving buffer and saving images...")
+                            print("Elapsed time:", time.time() - start_elapse)
 
                             # SPECIFY SAVED FOLDER LOCATION HERE
                             # base_folder = os.path.expanduser('~/Desktop/flight_arena/Final_Versions/DATA/')
                             base_folder = '/mnt/data/DATA'
-                            folder_name_0 = os.path.join(base_folder, f'main_images_{end_time}_a')
-                            folder_name_1 = os.path.join(base_folder, f'main_images_{end_time}_b')
+                            folder_name_0 = os.path.join(base_folder, f'{log_time}_main_images_a')
+                            folder_name_1 = os.path.join(base_folder, f'{log_time}_main_images_b')
                             os.makedirs(folder_name_0, exist_ok=True)
                             os.makedirs(folder_name_1, exist_ok=True)
 

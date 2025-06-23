@@ -3,6 +3,7 @@ from alicat import FlowController
 import signal
 import sys
 import csv
+import time
 from datetime import datetime
 import os
 
@@ -39,7 +40,6 @@ async def adjust_flows(controller_air, controller_co2, controller_odor,
 
     # Log to CSV
     if csv_writer:
-        # timestamp = datetime.now().isoformat()
         timestamp = datetime.now()
         csv_writer.writerow([timestamp, air_flow, co2_flow, odor_flow])
 
@@ -107,8 +107,8 @@ async def keyboard_listener(controller_air, controller_co2, controller_odor, csv
 async def main():
     global error_counter
 
-    # Logging
-    log_time = datetime.now().strftime("%Y-%-m-%d_%H-%M-%S.%f")[:-3]
+    # Create a new CSV file
+    log_time = int(time.time() * 1000)
     base_folder = '/mnt/data/DATA'
     filename = os.path.join(base_folder, f'{log_time}_mass_flow.csv')
 
